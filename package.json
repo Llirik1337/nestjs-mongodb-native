@@ -2,7 +2,8 @@
   "name": "nestjs-mongodb-native",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p ./tsconfig.build.json",
     "test": "jest",
@@ -17,7 +18,7 @@
     ]
   },
   "author": "Llirik1337",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.2",
     "@types/node": "^18.16.18",
