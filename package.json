@@ -1,7 +1,7 @@
 {
   "name": "nestjs-mongodb-native",
   "version": "1.0.0",
-  "description": "",
+  "description": "A package for integrating MongoDB with NestJS using the MongoDB native driver",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -11,6 +11,21 @@
     "format": "prettier --write \"**/*.ts\"",
     "prepare": "husky install"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Llirik1337/nestjs-mongodb-native.git"
+  },
+  "keywords": [
+    "nestjs",
+    "mongodb",
+    "mongodb-native",
+    "database",
+    "driver"
+  ],
+  "bugs": {
+    "url": "https://github.com/Llirik1337/nestjs-mongodb-native/issues"
+  },
+  "homepage": "https://github.com/Llirik1337/nestjs-mongodb-native#readme",
   "lint-staged": {
     "**/*.{js,ts,json}": [
       "eslint . --fix",
