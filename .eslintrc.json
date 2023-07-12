@@ -19,6 +19,7 @@
     "project": true,
     "tsconfigRootDir": "."
   },
+  "ignorePatterns": ["setup-jest.js"],
   "plugins": ["@typescript-eslint", "jest", "prettier"],
   "rules": {
     "prettier/prettier": "error",
