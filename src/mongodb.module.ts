@@ -1,10 +1,11 @@
 import {
+  Inject,
   Module,
   type DynamicModule,
   type OnModuleDestroy,
   type Provider,
 } from '@nestjs/common';
-import { MongoClient, type Collection } from 'mongodb';
+import { MongoClient, type Collection, type Db } from 'mongodb';
 
 export class MongodbModuleOptions {
   url!: string;
@@ -16,11 +17,22 @@ export class MongodbModuleCollectionOptions {
   indexes?: Array<Parameters<Collection['createIndex']>>;
 }
 
-export const getMongoCollectionToken = (name: string): string =>
-  `${MongodbModule.name.toLocaleUpperCase()}_COLLECTION_${name.toLocaleUpperCase()}`;
+export const getMongoCollectionToken = (
+  name: string,
+  dbName?: string,
+): string =>
+  `${getMongoDatabaseToken(dbName)}_COLLECTION_${name.toLocaleUpperCase()}`;
+
+export const getMongoDatabaseToken = (name = `default`): string =>
+  `${MongodbModule.name.toLocaleUpperCase()}_DATABASE_${name.toLocaleUpperCase()}`;
 
 export const getMongoCollectionOptionsToken = (name: string): string =>
   `${getMongoCollectionToken(name)}_OPTIONS`;
+
+export const InjectCollection = (
+  name: string,
+  dbName?: string,
+): ReturnType<typeof Inject> => Inject(getMongoCollectionToken(name, dbName));
 
 @Module({})
 export class MongodbModule implements OnModuleDestroy {
@@ -61,21 +73,32 @@ export class MongodbModule implements OnModuleDestroy {
 
   static forFeature(options: MongodbModuleCollectionOptions): DynamicModule {
     const optionsToken = getMongoCollectionOptionsToken(options.collectionName);
+    const databaseToken = getMongoDatabaseToken(options.dbName);
+    const collectionToken = getMongoCollectionToken(
+      options.collectionName,
+      options.dbName,
+    );
+
     const providers: Provider[] = [
       {
         provide: optionsToken,
         useValue: options,
       },
       {
-        provide: getMongoCollectionToken(options.collectionName),
+        provide: databaseToken,
         inject: [MongoClient, optionsToken],
-        useFactory: async (
+        useFactory(
           mongoClient: MongoClient,
           options: MongodbModuleCollectionOptions,
-        ) => {
-          const collection = mongoClient
-            .db(options.dbName)
-            .collection(options.collectionName);
+        ) {
+          return mongoClient.db(options.dbName);
+        },
+      },
+      {
+        provide: collectionToken,
+        inject: [optionsToken, databaseToken],
+        useFactory: async (options: MongodbModuleCollectionOptions, db: Db) => {
+          const collection = db.collection(options.collectionName);
 
           if (options.indexes != null) {
             await Promise.all(
