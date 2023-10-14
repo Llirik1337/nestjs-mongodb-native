@@ -4,6 +4,7 @@ import {
   type DynamicModule,
   type OnModuleDestroy,
   type Provider,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { MongoClient, type Collection, type Db } from 'mongodb';
 
@@ -35,11 +36,22 @@ export const InjectCollection = (
 ): ReturnType<typeof Inject> => Inject(getMongoCollectionToken(name, dbName));
 
 @Module({})
-export class MongodbModule implements OnModuleDestroy {
+export class MongodbModule implements OnModuleDestroy, OnModuleInit {
+  async onModuleInit(): Promise<void> {
+    await Promise.all(
+      [...MongodbModule.initIndexList.values()].map(async (initFn) => {
+        await initFn();
+      }),
+    );
+  }
+
   private static mongoClient: MongoClient;
+
+  static initIndexList = new Set<() => Promise<void>>();
 
   async onModuleDestroy(): Promise<void> {
     await MongodbModule.mongoClient.close();
+    MongodbModule.initIndexList.clear();
   }
 
   static forRoot(options: MongodbModuleOptions): DynamicModule {
@@ -97,16 +109,18 @@ export class MongodbModule implements OnModuleDestroy {
       {
         provide: collectionToken,
         inject: [optionsToken, databaseToken],
-        useFactory: async (options: MongodbModuleCollectionOptions, db: Db) => {
+        useFactory: (options: MongodbModuleCollectionOptions, db: Db) => {
           const collection = db.collection(options.collectionName);
 
-          if (options.indexes != null) {
-            await Promise.all(
-              options.indexes.map(async (args) => {
-                return await collection.createIndex(...args);
-              }),
-            );
-          }
+          this.initIndexList.add(async (): Promise<void> => {
+            if (options.indexes != null) {
+              await Promise.all(
+                options.indexes.map(async (args) => {
+                  await collection.createIndex(...args);
+                }),
+              );
+            }
+          });
 
           return collection;
         },

@@ -23,6 +23,7 @@ describe(`MongodbModule`, () => {
 
     collection = moduleRef.get(getMongoCollectionToken(`users`));
     mongodbClient = moduleRef.get(MongoClient);
+    await moduleRef.init();
   });
 
   afterAll(async () => {
