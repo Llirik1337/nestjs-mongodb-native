@@ -14,7 +14,7 @@
     "format": "prettier --write \"**/*.ts\"",
     "prepare": "husky install",
     "clear:dist": "rimraf ./dist",
-    "prepublish": "npm run test && npx --no-install lint-staged && npm run clear:dist && npm run build"
+    "prepublishOnly": "npm run test && npx --no-install lint-staged && npm run clear:dist && npm run build"
   },
   "repository": {
     "type": "git",
