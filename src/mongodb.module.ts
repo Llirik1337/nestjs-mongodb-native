@@ -5,11 +5,16 @@ import {
   type OnModuleDestroy,
   type Provider,
   type OnModuleInit,
+  type ForwardReference,
+  type Type,
+  type OptionalFactoryDependency,
+  type InjectionToken,
 } from '@nestjs/common';
 import { MongoClient, type Collection, type Db } from 'mongodb';
 
 export class MongodbModuleOptions {
   url!: string;
+  dbName?: string;
 }
 
 export class MongodbModuleCollectionOptions {
@@ -54,12 +59,64 @@ export class MongodbModule implements OnModuleDestroy, OnModuleInit {
     MongodbModule.initIndexList.clear();
   }
 
+  static forRootAsync(params: {
+    imports: Array<
+      Type | DynamicModule | Promise<DynamicModule> | ForwardReference
+    >;
+    inject: Array<InjectionToken | OptionalFactoryDependency>;
+    useFactory: (
+      ...args: any[]
+    ) => MongodbModuleOptions | Promise<MongodbModuleOptions>;
+  }): DynamicModule {
+    const defaultDatabaseToken = getMongoDatabaseToken();
+
+    const providers: Provider[] | undefined = [
+      {
+        provide: MongodbModuleOptions,
+        inject: params.inject,
+        useFactory: params.useFactory,
+      },
+      {
+        provide: MongoClient,
+        inject: [MongodbModuleOptions],
+        useFactory: async (options: MongodbModuleOptions) => {
+          console.dir(options);
+
+          const client = new MongoClient(options.url);
+
+          MongodbModule.mongoClient = client;
+
+          await client.connect();
+
+          return client;
+        },
+      },
+      {
+        provide: defaultDatabaseToken,
+        inject: [MongoClient, MongodbModuleOptions],
+        useFactory(mongoClient: MongoClient, options: MongodbModuleOptions) {
+          return mongoClient.db(options.dbName);
+        },
+      },
+    ];
+    return {
+      global: true,
+      module: MongodbModule,
+      imports: params.imports,
+      providers,
+      exports: providers,
+    };
+  }
+
   static forRoot(options: MongodbModuleOptions): DynamicModule {
+    const defaultDatabaseToken = getMongoDatabaseToken();
+
     const providers: Provider[] = [
       {
         provide: MongodbModuleOptions,
         useValue: options,
       },
+
       {
         provide: MongoClient,
         inject: [MongodbModuleOptions],
@@ -71,6 +128,13 @@ export class MongodbModule implements OnModuleDestroy, OnModuleInit {
           await client.connect();
 
           return client;
+        },
+      },
+      {
+        provide: defaultDatabaseToken,
+        inject: [MongoClient, MongodbModuleOptions],
+        useFactory(mongoClient: MongoClient, options: MongodbModuleOptions) {
+          return mongoClient.db(options.dbName);
         },
       },
     ];
