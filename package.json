@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "tsc -p ./tsconfig.build.json",
+    "build:watch": "tsc -w -p ./tsconfig.build.json",
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"**/*.ts\"",

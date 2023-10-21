@@ -80,15 +80,30 @@ export class MongodbModule implements OnModuleDestroy, OnModuleInit {
         provide: MongoClient,
         inject: [MongodbModuleOptions],
         useFactory: async (options: MongodbModuleOptions) => {
-          console.dir(options);
+          return await new Promise<MongoClient>((resolve, reject): void => {
+            const client = new MongoClient(options.url);
 
-          const client = new MongoClient(options.url);
+            MongodbModule.mongoClient = client;
 
-          MongodbModule.mongoClient = client;
+            // client.on(`error`, reject);
+            // client.on(`timeout`, reject);
+            // client.on(`connectionCheckOutFailed`, reject);
 
-          await client.connect();
+            client.on(`serverHeartbeatFailed`, (event) => {
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 
-          return client;
+              reject(new Error(JSON.stringify(event, undefined, 2)));
+            });
+
+            client
+              .connect()
+              .then((client) => {
+                resolve(client);
+              })
+              .catch((reason) => {
+                console.error(reason);
+              });
+          });
         },
       },
       {
