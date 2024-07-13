@@ -2,15 +2,14 @@ import {
   Inject,
   Module,
   type DynamicModule,
-  type OnModuleDestroy,
-  type Provider,
-  type OnModuleInit,
   type ForwardReference,
-  type Type,
-  type OptionalFactoryDependency,
   type InjectionToken,
+  type OnModuleDestroy,
+  type OptionalFactoryDependency,
+  type Provider,
+  type Type,
 } from '@nestjs/common';
-import { MongoClient, type Collection, type Db } from 'mongodb';
+import { MongoClient, type Db } from 'mongodb';
 
 export class MongodbModuleOptions {
   url!: string;
@@ -20,7 +19,6 @@ export class MongodbModuleOptions {
 export class MongodbModuleCollectionOptions {
   collectionName!: string;
   dbName?: string;
-  indexes?: Array<Parameters<Collection['createIndex']>>;
 }
 
 export const getMongoCollectionToken = (
@@ -41,22 +39,11 @@ export const InjectCollection = (
 ): ReturnType<typeof Inject> => Inject(getMongoCollectionToken(name, dbName));
 
 @Module({})
-export class MongodbModule implements OnModuleDestroy, OnModuleInit {
-  async onModuleInit(): Promise<void> {
-    await Promise.all(
-      [...MongodbModule.initIndexList.values()].map(async (initFn) => {
-        await initFn();
-      }),
-    );
-  }
-
+export class MongodbModule implements OnModuleDestroy {
   private static mongoClient: MongoClient;
-
-  static initIndexList = new Set<() => Promise<void>>();
 
   async onModuleDestroy(): Promise<void> {
     await MongodbModule.mongoClient.close();
-    MongodbModule.initIndexList.clear();
   }
 
   static forRootAsync(params: {
@@ -190,16 +177,6 @@ export class MongodbModule implements OnModuleDestroy, OnModuleInit {
         inject: [optionsToken, databaseToken],
         useFactory: (options: MongodbModuleCollectionOptions, db: Db) => {
           const collection = db.collection(options.collectionName);
-
-          this.initIndexList.add(async (): Promise<void> => {
-            if (options.indexes != null) {
-              await Promise.all(
-                options.indexes.map(async (args) => {
-                  await collection.createIndex(...args);
-                }),
-              );
-            }
-          });
 
           return collection;
         },
