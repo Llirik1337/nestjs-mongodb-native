@@ -82,14 +82,7 @@ export class MongodbModule implements OnModuleDestroy {
               reject(new Error(JSON.stringify(event, undefined, 2)));
             });
 
-            client
-              .connect()
-              .then((client) => {
-                resolve(client);
-              })
-              .catch((reason) => {
-                console.error(reason);
-              });
+            client.connect().then(resolve).catch(reject);
           });
         },
       },
