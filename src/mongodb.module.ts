@@ -40,10 +40,10 @@ export const InjectCollection = (
 
 @Module({})
 export class MongodbModule implements OnModuleDestroy {
-  private static mongoClient: MongoClient;
+  constructor(private readonly client: MongoClient) {}
 
   async onModuleDestroy(): Promise<void> {
-    await MongodbModule.mongoClient.close();
+    await this.client.close();
   }
 
   static forRootAsync(params: {
@@ -70,11 +70,9 @@ export class MongodbModule implements OnModuleDestroy {
           return await new Promise<MongoClient>((resolve, reject): void => {
             const client = new MongoClient(options.url);
 
-            MongodbModule.mongoClient = client;
-
-            // client.on(`error`, reject);
-            // client.on(`timeout`, reject);
-            // client.on(`connectionCheckOutFailed`, reject);
+            client.on(`error`, reject);
+            client.on(`timeout`, reject);
+            client.on(`connectionCheckOutFailed`, reject);
 
             client.on(`serverHeartbeatFailed`, (event) => {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -117,8 +115,6 @@ export class MongodbModule implements OnModuleDestroy {
         inject: [MongodbModuleOptions],
         useFactory: async (options: MongodbModuleOptions) => {
           const client = new MongoClient(options.url);
-
-          MongodbModule.mongoClient = client;
 
           await client.connect();
 
